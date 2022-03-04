@@ -1,5 +1,6 @@
 # bookshops-comparison
 App used to gather products data from popular bookshops' homepages. All data is exported to google sheets worksheet where it can be analyzed and where we can find the best offer of specific product :)
+
 My goal was to write code in the most object-oriented way, following SOLID and DRY rules.
 
 ### Additional info
