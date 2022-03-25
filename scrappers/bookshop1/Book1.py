@@ -20,54 +20,76 @@ class Book1(ProductModel):
         self._set_time_to_send(self.__extract_time_to_send_from_product_card(product_card_html))
         self._set_stock_level(self.__extract_stock_level_from_product_card(product_card_html))
 
-    @staticmethod
-    def __extract_category_from_product_card(product_card_html: BeautifulSoup) -> list[str]:
-        return product_card_html.find('span', {'itemprop': 'category'}).attrs['content'].split(' > ')[1:]
+    def __extract_category_from_product_card(self, product_card_html: BeautifulSoup) -> list[str]:
+        try:
+            return product_card_html.find('span', {'itemprop': 'category'}).attrs['content'].split(' > ')[1:]
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
-    @staticmethod
-    def __extract_title_from_product_card(product_card_html: BeautifulSoup) -> str:
-        return product_card_html.find('span', {'itemprop': 'name'}).string.strip()
+    def __extract_title_from_product_card(self, product_card_html: BeautifulSoup) -> str:
+        try:
+            return product_card_html.find('span', {'itemprop': 'name'}).string.strip()
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     def __extract_author_from_product_card(self, product_card_html: BeautifulSoup) -> str:
-        for item in self.__extract_product_props_list(product_card_html):
-            if 'Autor' in str(item):
-                return item.contents[1].a.string.strip()
-        return self._value_not_provided_fallback
+        try:
+            for item in self.__extract_product_props_list(product_card_html):
+                if 'Autor' in str(item):
+                    return item.contents[1].a.string.strip()
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     def __extract_ean_from_product_card(self, product_card_html: BeautifulSoup) -> str:
-        for item in self.__extract_product_props_list(product_card_html):
-            if 'EAN' in str(item):
-                return item.contents[1].span.b.string.strip()
-        return self._value_not_provided_fallback
+        try:
+            for item in self.__extract_product_props_list(product_card_html):
+                if 'EAN' in str(item):
+                    return item.contents[1].span.b.string.strip()
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     def __extract_product_props_list(self, product_card_html: BeautifulSoup) -> BeautifulSoup:
-        return self.__extract_main_product_info_div(product_card_html).table.contents
+        try:
+            return self.__extract_main_product_info_div(product_card_html).table.contents
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
-    @staticmethod
-    def __extract_main_product_info_div(product_card_html: BeautifulSoup) -> BeautifulSoup:
-        return product_card_html.find('div', {'class': 'col-12 col-lg-8 order-2 order-lg-1 p-3'})
+    def __extract_main_product_info_div(self, product_card_html: BeautifulSoup) -> BeautifulSoup:
+        try:
+            return product_card_html.find('div', {'class': 'col-12 col-lg-8 order-2 order-lg-1 p-3'})
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     def __extract_selling_price_from_product_card(self, product_card_html: BeautifulSoup) -> float:
-        schema_offer_tag = self.__extract_schema_offer_tag_from_product_card(product_card_html)
-        return float(schema_offer_tag.find('meta', {'itemprop': 'price'}).attrs['content'].strip())
+        try:
+            schema_offer_tag = self.__extract_schema_offer_tag_from_product_card(product_card_html)
+            return float(schema_offer_tag.find('meta', {'itemprop': 'price'}).attrs['content'].strip())
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
-    def __extract_schema_offer_tag_from_product_card(self, product_card_html: BeautifulSoup) -> BeautifulSoup:
-        main_product_info_div = self.__extract_main_product_info_div(product_card_html)
-        return main_product_info_div.find('span', {'itemprop': 'offers', 'itemtype': 'https://schema.org/Offer'})
+    def __extract_schema_offer_tag_from_product_card(self, product_card_html: BeautifulSoup):
+        try:
+            main_product_info_div = self.__extract_main_product_info_div(product_card_html)
+            return main_product_info_div.find('span', {'itemprop': 'offers', 'itemtype': 'https://schema.org/Offer'})
+        except (AttributeError, TypeError):
+            return None
 
     def __extract_cover_price_from_product_card(self, product_card_html: BeautifulSoup) -> float:
-        for item in self.__extract_product_props_list(product_card_html):
-            if 'Cena rynkowa' in str(item):
-                price_with_currency = item.contents[1].font.b.string.strip().replace(',', '.')
-                return self._convert_price_with_currency_to_float(price_with_currency)
-        return self._value_not_found_fallback
+        try:
+            for item in self.__extract_product_props_list(product_card_html):
+                if 'Cena rynkowa' in str(item):
+                    price_with_currency = item.contents[1].font.b.string.strip().replace(',', '.')
+                    return self._convert_price_with_currency_to_float(price_with_currency)
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     def __extract_time_to_send_from_product_card(self, product_card_html: BeautifulSoup) -> str:
-        single_shipping_info_line = self.__extract_single_shipping_info_line_from_product_card(product_card_html)
-        if single_shipping_info_line is not None and not isinstance(single_shipping_info_line, str):
-            time_to_send = single_shipping_info_line.contents[1].font.contents[0]
-            return self.__remove_redundant_characters(time_to_send)
-        else:
+        try:
+            single_shipping_info_line = self.__extract_single_shipping_info_line_from_product_card(product_card_html)
+            if single_shipping_info_line is not None and not isinstance(single_shipping_info_line, str):
+                time_to_send = single_shipping_info_line.contents[1].font.contents[0]
+                return self.__remove_redundant_characters(time_to_send)
+        except (AttributeError, TypeError):
             return self._value_not_found_fallback
 
     def __extract_single_shipping_info_line_from_product_card(self, product_card_html: BeautifulSoup) -> BeautifulSoup:
@@ -78,16 +100,19 @@ class Book1(ProductModel):
             return self._value_not_found_fallback
 
     def __extract_stock_level_from_product_card(self, product_card_html: BeautifulSoup) -> str:
-        main_product_info_div = self.__extract_main_product_info_div(product_card_html)
-        meta_availability_tag = main_product_info_div.find('meta', {'itemprop': 'availability'})
-        if meta_availability_tag.attrs['content'] == 'InStock':
-            if meta_availability_tag.tr is not None:
-                stock_level = meta_availability_tag.tr.contents[1].font.contents[1]
-                return self.__remove_redundant_characters(stock_level)
+        try:
+            main_product_info_div = self.__extract_main_product_info_div(product_card_html)
+            meta_availability_tag = main_product_info_div.find('meta', {'itemprop': 'availability'})
+            if meta_availability_tag.attrs['content'] == 'InStock':
+                if meta_availability_tag.tr is not None:
+                    stock_level = meta_availability_tag.tr.contents[1].font.contents[1]
+                    return self.__remove_redundant_characters(stock_level)
+                else:
+                    return 'W magazynie'
             else:
-                return 'W magazynie'
-        else:
-            return self._empty_stock_fallback
+                return self._empty_stock_fallback
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     @staticmethod
     def __remove_redundant_characters(text: str) -> str:

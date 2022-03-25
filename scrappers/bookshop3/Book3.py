@@ -19,30 +19,40 @@ class Book3(ProductModel):
         self._set_discount_amount_if_possible()
         self._set_time_to_send(self.__extract_time_to_send_from_product_card(product_card_html))
 
-    @staticmethod
-    def __find_atc_btn_on_product_card(product_card_html: BeautifulSoup) -> BeautifulSoup:
-        return product_card_html.find('button', {'data-title': 'Dodano do koszyka'})
+    def __find_atc_btn_on_product_card(self, product_card_html: BeautifulSoup) -> BeautifulSoup:
+        try:
+            return product_card_html.find('button', {'data-title': 'Dodano do koszyka'})
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
 
     def __try_to_extract_category_from_atc_btn(self, atc_btn: BeautifulSoup) -> list[str]:
-        category = self.__try_to_extract_value_from_atc_btn(atc_btn, 'data-analytics-category')
-        if category != self._value_not_found_fallback:
-            if '/' in category:
-                return category.split('/')
+        try:
+            category = self.__try_to_extract_value_from_atc_btn(atc_btn, 'data-analytics-category')
+            if category != self._value_not_found_fallback:
+                if '/' in category:
+                    return category.split('/')
+                else:
+                    return [category]
             else:
-                return [category]
-        else:
+                return self._value_not_found_fallback
+        except (AttributeError, TypeError):
             return self._value_not_found_fallback
 
     def __try_to_extract_value_from_atc_btn(self, atc_btn: BeautifulSoup, prop_name: str) -> str:
-        if prop_name in atc_btn.attrs.keys():
-            return atc_btn.attrs[prop_name]
-        else:
+        try:
+            if prop_name in atc_btn.attrs.keys():
+                return atc_btn.attrs[prop_name]
+            else:
+                return self._value_not_found_fallback
+        except (AttributeError, TypeError):
             return self._value_not_found_fallback
 
-    @staticmethod
-    def __extract_time_to_send_from_product_card(product_card_html: BeautifulSoup) -> str:
-        availability_tag = product_card_html.find('div', {'data-ta': 'availability-info'})
-        if isinstance(availability_tag.div, Tag):
-            return availability_tag.div.string.replace('\n', '').strip()
-        else:
-            return availability_tag.string.replace('\n', ' ').strip()
+    def __extract_time_to_send_from_product_card(self, product_card_html: BeautifulSoup) -> str:
+        try:
+            availability_tag = product_card_html.find('div', {'data-ta': 'availability-info'})
+            if isinstance(availability_tag.div, Tag):
+                return availability_tag.div.string.replace('\n', '').strip()
+            else:
+                return availability_tag.string.replace('\n', ' ').strip()
+        except (AttributeError, TypeError):
+            return self._value_not_found_fallback
