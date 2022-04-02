@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup
 
+from models.ErrorHandler import ErrorHandler
 from models.ProductModel import ProductModel
 from scrappers.ScrapperHelper import ScrapperHelper
 
@@ -7,7 +8,7 @@ from scrappers.ScrapperHelper import ScrapperHelper
 class Book2(ProductModel):
     def __init__(self, product_card_url: str):
         super().__init__()
-        self._set_shop('Bookshop #2')
+        self._set_shop('Bookshop#2.pl')
         self._set_product_card_url(product_card_url)
         product_card_html = ScrapperHelper.parse_website_to_nested_data_structure(product_card_url)
         self.__details_list = self.__extract_details_list_from_product_card(product_card_html)
@@ -21,66 +22,52 @@ class Book2(ProductModel):
         self._set_time_to_send(self.__extract_time_to_send_from_product_card(product_card_html))
 
     @staticmethod
+    @ErrorHandler.tag_extraction
     def __extract_details_list_from_product_card(product_card_html: BeautifulSoup):
-        try:
-            main_product_info_container = product_card_html.find_all('blockquote', {'class': 'size-12'})[1]
-            params = []
-            for item in str(main_product_info_container.p).replace('<p>', '').replace('</p>', '').split('<br clear="all"/>'):
-                params.append(BeautifulSoup(item, 'html.parser'))
-            return params
-        except (AttributeError, TypeError):
-            return None
+        main_product_info_container = product_card_html.find_all('blockquote', {'class': 'size-12'})[1]
+        params = []
+        for item in str(main_product_info_container.p).replace('<p>', '').replace('</p>', '').split('<br clear="all"/>'):
+            params.append(BeautifulSoup(item, 'html.parser'))
+        return params
 
-    def __extract_category_from_product_card(self, product_card_html: BeautifulSoup) -> list[str]:
-        try:
-            full_category = []
-            breadcrumbs = product_card_html.find('div', {'id': 'breadcrumb'}).find_all('span', {'itemprop': 'name'})
-            for category_name in breadcrumbs:
-                full_category.append(category_name.string.strip())
-            return full_category[1:-1]
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+    @staticmethod
+    @ErrorHandler.tag_extraction
+    def __extract_category_from_product_card(product_card_html: BeautifulSoup) -> list[str]:
+        full_category = []
+        breadcrumbs = product_card_html.find('div', {'id': 'breadcrumb'}).find_all('span', {'itemprop': 'name'})
+        for category_name in breadcrumbs:
+            full_category.append(category_name.string.strip())
+        return full_category[1:-1]
 
+    @ErrorHandler.tag_extraction
     def __extract_title(self) -> str:
-        try:
-            return self.__find_single_detail_value_by_name('Tytuł')
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+        return self.__find_single_detail_value_by_name('Tytuł')
 
+    @ErrorHandler.tag_extraction
     def __find_single_detail_value_by_name(self, param_name: str) -> str:
-        try:
-            for item in self.__details_list:
-                if param_name in str(item.span):
-                    return str(item.strong.string).strip()
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+        for item in self.__details_list:
+            if param_name in str(item.span):
+                return str(item.strong.string).strip()
 
+    @ErrorHandler.tag_extraction
     def __extract_author(self) -> str:
-        try:
-            return self.__find_single_detail_value_by_name('Autor')
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+        return self.__find_single_detail_value_by_name('Autor')
 
+    @ErrorHandler.tag_extraction
     def __extract_isbn(self) -> str:
-        try:
-            return self.__find_single_detail_value_by_name('ISBN')
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+        return self.__find_single_detail_value_by_name('ISBN')
 
-    def __extract_selling_price_from_product_card(self, product_card_html: BeautifulSoup) -> float:
-        try:
-            return float(product_card_html.find('div', {'class': 'price'}).strong.contents[0].strip().replace(',', '.'))
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+    @staticmethod
+    @ErrorHandler.tag_extraction
+    def __extract_selling_price_from_product_card(product_card_html: BeautifulSoup) -> float:
+        return float(product_card_html.find('div', {'class': 'price'}).strong.contents[0].strip().replace(',', '.'))
 
-    def __extract_cover_price_from_product_card(self, product_card_html: BeautifulSoup) -> float:
-        try:
-            return float(product_card_html.find('div', {'class': 'oldPirce'}).strong.contents[0].strip().replace(',', '.'))
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+    @staticmethod
+    @ErrorHandler.tag_extraction
+    def __extract_cover_price_from_product_card(product_card_html: BeautifulSoup) -> float:
+        return float(product_card_html.find('div', {'class': 'oldPirce'}).strong.contents[0].strip().replace(',', '.'))
 
-    def __extract_time_to_send_from_product_card(self, product_card_html: BeautifulSoup) -> str:
-        try:
-            return product_card_html.find('div', {'class': 'jbWysylka'}).span.string.strip().replace('Wysyłka: ', '')
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+    @staticmethod
+    @ErrorHandler.tag_extraction
+    def __extract_time_to_send_from_product_card(product_card_html: BeautifulSoup) -> str:
+        return product_card_html.find('div', {'class': 'jbWysylka'}).span.string.strip().replace('Wysyłka: ', '')

@@ -1,5 +1,6 @@
 from bs4 import BeautifulSoup, Tag
 
+from models.ErrorHandler import ErrorHandler
 from models.ProductModel import ProductModel
 from scrappers.ScrapperHelper import ScrapperHelper
 
@@ -7,7 +8,7 @@ from scrappers.ScrapperHelper import ScrapperHelper
 class Book3(ProductModel):
     def __init__(self, product_card_url: str):
         super().__init__()
-        self._set_shop('Bookshop #3')
+        self._set_shop('Bookshop#3.pl')
         self._set_product_card_url(product_card_url)
         product_card_html = ScrapperHelper.parse_website_to_nested_data_structure(product_card_url)
         atc_btn = self.__find_atc_btn_on_product_card(product_card_html)
@@ -19,40 +20,34 @@ class Book3(ProductModel):
         self._set_discount_amount_if_possible()
         self._set_time_to_send(self.__extract_time_to_send_from_product_card(product_card_html))
 
-    def __find_atc_btn_on_product_card(self, product_card_html: BeautifulSoup) -> BeautifulSoup:
-        try:
-            return product_card_html.find('button', {'data-title': 'Dodano do koszyka'})
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+    @staticmethod
+    @ErrorHandler.tag_extraction
+    def __find_atc_btn_on_product_card(product_card_html: BeautifulSoup) -> BeautifulSoup:
+        return product_card_html.find('button', {'data-title': 'Dodano do koszyka'})
 
+    @ErrorHandler.tag_extraction
     def __try_to_extract_category_from_atc_btn(self, atc_btn: BeautifulSoup) -> list[str]:
-        try:
-            category = self.__try_to_extract_value_from_atc_btn(atc_btn, 'data-analytics-category')
-            if category != self._value_not_found_fallback:
-                if '/' in category:
-                    return category.split('/')
-                else:
-                    return [category]
+        category = self.__try_to_extract_value_from_atc_btn(atc_btn, 'data-analytics-category')
+        if category != self._value_not_found_fallback:
+            if '/' in category:
+                return category.split('/')
             else:
-                return self._value_not_found_fallback
-        except (AttributeError, TypeError):
+                return [category]
+        else:
             return self._value_not_found_fallback
 
+    @ErrorHandler.tag_extraction
     def __try_to_extract_value_from_atc_btn(self, atc_btn: BeautifulSoup, prop_name: str) -> str:
-        try:
-            if prop_name in atc_btn.attrs.keys():
-                return atc_btn.attrs[prop_name]
-            else:
-                return self._value_not_found_fallback
-        except (AttributeError, TypeError):
+        if prop_name in atc_btn.attrs.keys():
+            return atc_btn.attrs[prop_name]
+        else:
             return self._value_not_found_fallback
 
-    def __extract_time_to_send_from_product_card(self, product_card_html: BeautifulSoup) -> str:
-        try:
-            availability_tag = product_card_html.find('div', {'data-ta': 'availability-info'})
-            if isinstance(availability_tag.div, Tag):
-                return availability_tag.div.string.replace('\n', '').strip()
-            else:
-                return availability_tag.string.replace('\n', ' ').strip()
-        except (AttributeError, TypeError):
-            return self._value_not_found_fallback
+    @staticmethod
+    @ErrorHandler.tag_extraction
+    def __extract_time_to_send_from_product_card(product_card_html: BeautifulSoup) -> str:
+        availability_tag = product_card_html.find('div', {'data-ta': 'availability-info'})
+        if isinstance(availability_tag.div, Tag):
+            return availability_tag.div.string.replace('\n', '').strip()
+        else:
+            return availability_tag.string.replace('\n', ' ').strip()
